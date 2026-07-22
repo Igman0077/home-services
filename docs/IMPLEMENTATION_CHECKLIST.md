@@ -36,9 +36,14 @@
 
 ## Phase 3 — Leads
 
-- [ ] Quote form
-- [ ] Routing engine
-- [ ] Business/admin lead dashboards
+- [x] Quote form (multi-step)
+- [x] Lead storage + consent logging
+- [x] Spam controls (honeypot, rate limit, timing, duplicate detection)
+- [x] Routing engine (shared/exclusive/manual, caps, acceptance window)
+- [x] Business lead dashboard (masked contacts until accept)
+- [x] Admin lead dashboard + manual assign
+- [x] Seed routing rules + business owner test account
+- [x] Lead validation/fingerprint tests
 
 ## Phase 4 — Business accounts
 

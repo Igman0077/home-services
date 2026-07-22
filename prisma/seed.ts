@@ -1051,6 +1051,117 @@ async function seedLocalServicePages() {
   }
 }
 
+async function seedLeadRouting() {
+  const roofing = await prisma.service.findUnique({ where: { slug: "roofing" } });
+  const plumbing = await prisma.service.findUnique({
+    where: { slug: "plumbing" },
+  });
+
+  await prisma.leadRoutingRule.deleteMany({
+    where: { name: { in: ["Default shared", "Roofing shared", "Plumbing shared"] } },
+  });
+
+  await prisma.leadRoutingRule.createMany({
+    data: [
+      {
+        name: "Default shared",
+        isActive: true,
+        priority: 100,
+        mode: "SHARED",
+        maxRecipients: 3,
+        acceptanceMins: 120,
+      },
+      {
+        name: "Roofing shared",
+        isActive: true,
+        priority: 10,
+        mode: "SHARED",
+        serviceId: roofing?.id,
+        maxRecipients: 3,
+        acceptanceMins: 90,
+      },
+      {
+        name: "Plumbing shared",
+        isActive: true,
+        priority: 10,
+        mode: "SHARED",
+        serviceId: plumbing?.id,
+        maxRecipients: 2,
+        acceptanceMins: 60,
+      },
+    ],
+  });
+
+  await prisma.leadPricingRule.deleteMany({
+    where: { name: { in: ["Shared default", "Exclusive default"] } },
+  });
+
+  await prisma.leadPricingRule.createMany({
+    data: [
+      {
+        name: "Shared default",
+        mode: "SHARED",
+        priceCents: 2500,
+        isActive: true,
+      },
+      {
+        name: "Exclusive default",
+        mode: "EXCLUSIVE",
+        priceCents: 7500,
+        isActive: true,
+      },
+    ],
+  });
+}
+
+async function seedBusinessOwnerAccess() {
+  const businessOwnerRole = await prisma.role.findUniqueOrThrow({
+    where: { name: "BUSINESS_OWNER" },
+  });
+  const passwordHash = await bcrypt.hash("ChangeMeNow!123", 12);
+
+  const owner = await prisma.user.upsert({
+    where: { email: "business@example.com" },
+    create: {
+      email: "business@example.com",
+      name: "Sample Business Owner",
+      passwordHash,
+      emailVerified: new Date(),
+      profile: { create: { displayName: "Sample Business Owner" } },
+      roles: { create: { roleId: businessOwnerRole.id } },
+    },
+    update: { passwordHash, name: "Sample Business Owner" },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: { userId: owner.id, roleId: businessOwnerRole.id },
+    },
+    create: { userId: owner.id, roleId: businessOwnerRole.id },
+    update: {},
+  });
+
+  const businesses = await prisma.business.findMany({
+    where: { isSampleData: true },
+    select: { id: true },
+  });
+
+  for (const business of businesses) {
+    await prisma.businessMember.upsert({
+      where: {
+        businessId_userId: { businessId: business.id, userId: owner.id },
+      },
+      create: {
+        businessId: business.id,
+        userId: owner.id,
+        title: "Owner",
+        isPrimary: true,
+      },
+      update: { isPrimary: true },
+    });
+  }
+}
+
 async function main() {
   console.info("Seeding North Country Home Services…");
   await seedRolesAndPermissions();
@@ -1061,17 +1172,20 @@ async function main() {
   await seedPlans();
   await seedSampleBusinesses();
   await seedLocalServicePages();
+  await seedLeadRouting();
+  await seedBusinessOwnerAccess();
   await prisma.auditLog.create({
     data: {
       action: "seed.completed",
       entityType: "System",
-      metadata: { phase: 2 },
+      metadata: { phase: 3 },
     },
   });
   console.info("Seed complete.");
   console.info(
     `Admin: ${process.env.SEED_ADMIN_EMAIL ?? "admin@example.com"} / (SEED_ADMIN_PASSWORD)`,
   );
+  console.info("Business owner: business@example.com / ChangeMeNow!123");
 }
 
 main()

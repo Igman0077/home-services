@@ -6,14 +6,13 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 2 — Public directory (complete in code)**
+**Phase 3 — Leads (complete in code)**
 
-- Homepage search + popular services/locations/businesses
-- Business directory with filters and profile pages
-- Local service pages at `/{state}/{city}/{service}` with readiness/noindex gates
-- Structured data (Organization, WebSite, BreadcrumbList, Service, LocalBusiness, FAQPage when eligible)
-- Dynamic sitemap + `/api/search`
-- Seed: labeled sample businesses and reviewed local page drafts
+- Multi-step quote request with consent + spam controls
+- Lead routing (shared/exclusive/manual) with plan/cap checks
+- Business lead inbox with contact masking until accept
+- Admin lead management and manual assignment
+- Seed: routing rules, pricing rules, `business@example.com` owner account
 
 ## Stack
 
@@ -61,6 +60,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Administrator | `admin@example.com` | `ChangeMeNow!123` |
 | Editor | `editor@example.com` | `ChangeMeNow!123` |
 | Homeowner | `homeowner@example.com` | `ChangeMeNow!123` |
+| Business owner | `business@example.com` | `ChangeMeNow!123` |
 
 Change these immediately if the environment is shared. Override via `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (and editor equivalents).
 
