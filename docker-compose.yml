@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: nchs
+      POSTGRES_PASSWORD: nchs_dev_password
+      POSTGRES_DB: north_country_home_services
+    volumes:
+      - nchs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nchs -d north_country_home_services"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nchs_pgdata:

@@ -1,0 +1,1315 @@
+// North Country Home Services — Prisma schema
+// Phase 1 establishes identity, RBAC, catalog, settings, and audit foundations.
+// Later-phase models are included so migrations stay additive and coherent.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum RoleName {
+  HOMEOWNER
+  BUSINESS_OWNER
+  EDITOR
+  ADMINISTRATOR
+}
+
+enum LocationType {
+  COUNTRY
+  STATE
+  COUNTY
+  CITY
+  ZIP
+  NEIGHBORHOOD
+}
+
+enum PublishStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ClaimStatus {
+  UNCLAIMED
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFO_REQUIRED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  BUSINESS_VERIFIED
+  PLATFORM_VERIFIED
+  REJECTED
+}
+
+enum BusinessPublishStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum LeadStatus {
+  NEW
+  VALIDATING
+  QUALIFIED
+  UNQUALIFIED
+  AVAILABLE
+  ASSIGNED
+  ACCEPTED
+  CONTACTED
+  APPOINTMENT_SCHEDULED
+  WON
+  LOST
+  REFUNDED
+  DISPUTED
+  ARCHIVED
+}
+
+enum LeadMode {
+  EXCLUSIVE
+  SHARED
+  MANUAL
+}
+
+enum ContactMethod {
+  EMAIL
+  PHONE
+  EITHER
+}
+
+enum PropertyType {
+  SINGLE_FAMILY
+  MULTI_FAMILY
+  CONDO
+  TOWNHOUSE
+  MOBILE
+  COMMERCIAL
+  OTHER
+}
+
+enum AIJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AIReviewStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}
+
+enum ReviewModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum DocumentVisibility {
+  PRIVATE
+  BUSINESS_SHARED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum IndexDirective {
+  INDEX
+  NOINDEX
+}
+
+// ─── Auth & identity (Auth.js compatible) ────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  accounts              Account[]
+  sessions              Session[]
+  profile               UserProfile?
+  roles                 UserRole[]
+  auditLogs             AuditLog[]              @relation("AuditActor")
+  properties            HomeownerProperty[]
+  favoriteBusinesses    FavoriteBusiness[]
+  leads                 Lead[]                  @relation("LeadSubmitter")
+  businessMemberships   BusinessMember[]
+  businessClaims        BusinessClaim[]
+  reviews               Review[]
+  reviewReports         ReviewReport[]
+  notifications         Notification[]
+  notificationPrefs     NotificationPreference[]
+  contentAuthored       ContentRevision[]       @relation("ContentAuthor")
+  contentReviewed       ContentRevision[]       @relation("ContentReviewer")
+  aiReviewed            AIGeneration[]          @relation("AIReviewer")
+  documents             Document[]
+  maintenanceTasks      MaintenanceTask[]
+  calculatorSubmissions CalculatorSubmission[]
+  consents              LeadConsent[]
+
+  @@index([deletedAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model UserProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  displayName    String?
+  bio            String?  @db.Text
+  preferredLocale String  @default("en-US")
+  timezone       String   @default("America/New_York")
+  marketingOptIn Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+// ─── Site configuration ──────────────────────────────────────────────────────
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  createdAt   DateTime @default(now())
+
+  @@index([key])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath  String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── Catalog: services & locations ───────────────────────────────────────────
+
+model ServiceCategory {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String?       @db.Text
+  icon        String?
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)
+  status      PublishStatus @default(DRAFT)
+  seoTitle    String?
+  seoDescription String?    @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  services Service[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Service {
+  id               String        @id @default(cuid())
+  categoryId       String?
+  parentId         String?
+  name             String
+  slug             String        @unique
+  shortDescription String?       @db.Text
+  description      String?       @db.Text
+  commonProblems   String?       @db.Text
+  seasonalNotes    String?       @db.Text
+  isActive         Boolean       @default(true)
+  isLaunchFocus    Boolean       @default(false)
+  sortOrder        Int           @default(0)
+  status           PublishStatus @default(DRAFT)
+  seoTitle         String?
+  seoDescription   String?       @db.Text
+  indexDirective   IndexDirective @default(INDEX)
+  lastReviewedAt   DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category          ServiceCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parent            Service?            @relation("ServiceHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Service[]           @relation("ServiceHierarchy")
+  businessServices  BusinessService[]
+  localPages        LocalServicePage[]
+  leads             Lead[]
+  faqs              FAQ[]
+  guideServices     GuideService[]
+  routingRules      LeadRoutingRule[]
+  pricingRules      LeadPricingRule[]
+
+  @@index([categoryId])
+  @@index([parentId])
+  @@index([isActive, status])
+  @@index([isLaunchFocus])
+}
+
+model Location {
+  id               String        @id @default(cuid())
+  parentId         String?
+  type             LocationType
+  name             String
+  slug             String
+  fullSlug         String        @unique
+  stateCode        String?
+  countyName       String?
+  latitude         Float?
+  longitude        Float?
+  population       Int?
+  timezone         String        @default("America/New_York")
+  shortDescription String?       @db.Text
+  climateNotes     String?       @db.Text
+  isActive         Boolean       @default(true)
+  status           PublishStatus @default(DRAFT)
+  seoTitle         String?
+  seoDescription   String?       @db.Text
+  indexDirective   IndexDirective @default(INDEX)
+  lastReviewedAt   DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  parent              Location?            @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children            Location[]           @relation("LocationHierarchy")
+  businessAreas       BusinessServiceArea[]
+  localPages          LocalServicePage[]
+  properties          HomeownerProperty[]
+  leads               Lead[]
+  faqs                FAQ[]
+  guideLocations      GuideLocation[]
+  routingRules        LeadRoutingRule[]
+  pricingRules        LeadPricingRule[]
+
+  @@unique([parentId, slug])
+  @@index([type, isActive])
+  @@index([stateCode])
+  @@index([parentId])
+}
+
+// ─── Business directory ──────────────────────────────────────────────────────
+
+model Business {
+  id                    String                 @id @default(cuid())
+  name                  String
+  slug                  String                 @unique
+  description           String?                @db.Text
+  logoUrl               String?
+  coverImageUrl         String?
+  phone                 String?
+  email                 String?
+  website               String?
+  addressLine1          String?
+  addressLine2          String?
+  city                  String?
+  stateCode             String?
+  postalCode            String?
+  latitude              Float?
+  longitude             Float?
+  isServiceAreaBusiness Boolean                @default(false)
+  offersEmergency       Boolean                @default(false)
+  offersFreeEstimate    Boolean                @default(false)
+  offersFinancing       Boolean                @default(false)
+  yearEstablished       Int?
+  licenseDetails        String?                @db.Text
+  insuranceDetails      String?                @db.Text
+  languagesSpoken       String[]               @default([])
+  paymentMethods        String[]               @default([])
+  servesResidential     Boolean                @default(true)
+  servesCommercial      Boolean                @default(false)
+  socialLinks           Json?
+  claimStatus           ClaimStatus            @default(UNCLAIMED)
+  verificationStatus    VerificationStatus     @default(UNVERIFIED)
+  publishStatus         BusinessPublishStatus  @default(DRAFT)
+  isFeatured            Boolean                @default(false)
+  isSponsored           Boolean                @default(false)
+  isSampleData          Boolean                @default(false)
+  averageRating         Float?
+  reviewCount           Int                    @default(0)
+  profileCompleteness   Int                    @default(0)
+  lastVerifiedAt        DateTime?
+  internalNotes         String?                @db.Text
+  subscriptionPlanId    String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  deletedAt             DateTime?
+
+  subscriptionPlan   SubscriptionPlan?      @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
+  members            BusinessMember[]
+  services           BusinessService[]
+  serviceAreas       BusinessServiceArea[]
+  hours              BusinessHours[]
+  images             BusinessImage[]
+  claims             BusinessClaim[]
+  verifications      BusinessVerification[]
+  leadPreferences    BusinessLeadPreference?
+  leadAssignments    LeadAssignment[]
+  reviews            Review[]
+  favorites          FavoriteBusiness[]
+  subscriptions      Subscription[]
+  credits            Credit[]
+
+  @@index([publishStatus, isFeatured])
+  @@index([claimStatus, verificationStatus])
+  @@index([isSampleData])
+  @@index([deletedAt])
+  @@index([subscriptionPlanId])
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  title      String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([userId])
+}
+
+model BusinessService {
+  businessId String
+  serviceId  String
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, serviceId])
+  @@index([serviceId])
+}
+
+model BusinessServiceArea {
+  id         String @id @default(cuid())
+  businessId String
+  locationId String
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, locationId])
+  @@index([locationId])
+}
+
+model BusinessHours {
+  id         String    @id @default(cuid())
+  businessId String
+  dayOfWeek  DayOfWeek
+  openTime   String?
+  closeTime  String?
+  isClosed   Boolean   @default(false)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, dayOfWeek])
+}
+
+model BusinessImage {
+  id         String   @id @default(cuid())
+  businessId String
+  url        String
+  altText    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model BusinessClaim {
+  id                 String      @id @default(cuid())
+  businessId         String
+  userId             String
+  status             ClaimStatus @default(PENDING)
+  verificationMethod String?
+  evidenceNotes      String?     @db.Text
+  adminNotes         String?     @db.Text
+  reviewedAt         DateTime?
+  reviewedById       String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([userId])
+}
+
+model BusinessVerification {
+  id         String             @id @default(cuid())
+  businessId String
+  method     String
+  status     VerificationStatus @default(PENDING)
+  evidence   Json?
+  notes      String?            @db.Text
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model FavoriteBusiness {
+  userId     String
+  businessId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@id([userId, businessId])
+}
+
+// ─── Content ─────────────────────────────────────────────────────────────────
+
+model LocalServicePage {
+  id                 String         @id @default(cuid())
+  serviceId          String
+  locationId         String
+  slugPath           String         @unique
+  h1                 String?
+  introduction       String?        @db.Text
+  serviceExplanation String?        @db.Text
+  localProblems      String?        @db.Text
+  seasonalNotes      String?        @db.Text
+  projectFactors     String?        @db.Text
+  priceRangeLow      Int?
+  priceRangeHigh     Int?
+  priceDisclaimer    String?        @db.Text
+  contentBlocks      Json?
+  status             PublishStatus  @default(DRAFT)
+  qualityScore       Int            @default(0)
+  isIndexable        Boolean        @default(false)
+  indexDirective     IndexDirective @default(NOINDEX)
+  duplicateWarning   Boolean        @default(false)
+  factualWarning     Boolean        @default(false)
+  seoTitle           String?
+  seoDescription     String?        @db.Text
+  canonicalPath      String?
+  lastReviewedAt     DateTime?
+  reviewedByName     String?
+  publishedAt        DateTime?
+  scheduledFor       DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  faqs     FAQ[]
+  revisions ContentRevision[]
+
+  @@unique([serviceId, locationId])
+  @@index([status, isIndexable])
+  @@index([locationId])
+}
+
+model Guide {
+  id             String         @id @default(cuid())
+  title          String
+  slug           String         @unique
+  excerpt        String?        @db.Text
+  contentBlocks  Json?
+  status         PublishStatus  @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?        @db.Text
+  indexDirective IndexDirective @default(INDEX)
+  authorName     String?
+  lastReviewedAt DateTime?
+  publishedAt    DateTime?
+  scheduledFor   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  services   GuideService[]
+  locations  GuideLocation[]
+  faqs       FAQ[]
+  revisions  ContentRevision[]
+}
+
+model GuideService {
+  guideId   String
+  serviceId String
+
+  guide   Guide   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([guideId, serviceId])
+}
+
+model GuideLocation {
+  guideId    String
+  locationId String
+
+  guide    Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([guideId, locationId])
+}
+
+model FAQ {
+  id                 String   @id @default(cuid())
+  question           String
+  answer             String   @db.Text
+  sortOrder          Int      @default(0)
+  serviceId          String?
+  locationId         String?
+  guideId            String?
+  localServicePageId String?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  service          Service?          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  location         Location?         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  guide            Guide?            @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  localServicePage LocalServicePage? @relation(fields: [localServicePageId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@index([locationId])
+  @@index([guideId])
+  @@index([localServicePageId])
+}
+
+model ContentRevision {
+  id                 String   @id @default(cuid())
+  entityType         String
+  entityId           String
+  snapshot           Json
+  authorId           String?
+  reviewerId         String?
+  notes              String?  @db.Text
+  localServicePageId String?
+  guideId            String?
+  createdAt          DateTime @default(now())
+
+  author           User?             @relation("ContentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  reviewer         User?             @relation("ContentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  localServicePage LocalServicePage? @relation(fields: [localServicePageId], references: [id], onDelete: Cascade)
+  guide            Guide?            @relation(fields: [guideId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model InternalLinkSuggestion {
+  id           String   @id @default(cuid())
+  fromPath    String
+  toPath       String
+  anchorText   String?
+  score        Float?
+  isPinned     Boolean  @default(false)
+  isRemoved    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([fromPath])
+  @@index([isRemoved, isPinned])
+}
+
+model SEOAudit {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  score      Int?
+  findings   Json
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+// ─── Leads ───────────────────────────────────────────────────────────────────
+
+model Lead {
+  id                   String        @id @default(cuid())
+  serviceId            String
+  locationId           String?
+  submitterId          String?
+  status               LeadStatus    @default(NEW)
+  mode                 LeadMode      @default(SHARED)
+  projectDescription   String        @db.Text
+  desiredTimeline      String?
+  propertyType         PropertyType?
+  contactName          String
+  contactEmail         String
+  contactPhone         String?
+  preferredContact     ContactMethod @default(EITHER)
+  zipCode              String?
+  spamScore            Float         @default(0)
+  isDuplicateSuspected Boolean       @default(false)
+  isSampleData         Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  service     Service             @relation(fields: [serviceId], references: [id])
+  location    Location?           @relation(fields: [locationId], references: [id])
+  submitter   User?               @relation("LeadSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
+  attachments LeadAttachment[]
+  consents    LeadConsent[]
+  assignments LeadAssignment[]
+  statusHistory LeadStatusHistory[]
+
+  @@index([status, createdAt])
+  @@index([serviceId])
+  @@index([locationId])
+  @@index([submitterId])
+}
+
+model LeadAttachment {
+  id        String   @id @default(cuid())
+  leadId    String
+  url       String
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model LeadConsent {
+  id              String   @id @default(cuid())
+  leadId          String?
+  userId          String?
+  consentVersion  String
+  consentText     String   @db.Text
+  formKey         String
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@index([userId])
+}
+
+model LeadAssignment {
+  id           String     @id @default(cuid())
+  leadId       String
+  businessId   String
+  status       LeadStatus @default(ASSIGNED)
+  assignedAt   DateTime   @default(now())
+  acceptedAt   DateTime?
+  expiresAt    DateTime?
+  contactedAt  DateTime?
+  priceCents   Int?
+  isExclusive  Boolean    @default(false)
+  routingNotes String?    @db.Text
+  updatedAt    DateTime   @updatedAt
+
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([businessId, status])
+}
+
+model LeadStatusHistory {
+  id        String     @id @default(cuid())
+  leadId    String
+  fromStatus LeadStatus?
+  toStatus  LeadStatus
+  note      String?
+  actorId   String?
+  createdAt DateTime   @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+model LeadRoutingRule {
+  id              String    @id @default(cuid())
+  name            String
+  isActive        Boolean   @default(true)
+  priority        Int       @default(100)
+  mode            LeadMode  @default(SHARED)
+  serviceId       String?
+  locationId      String?
+  maxRecipients   Int       @default(3)
+  weight          Int       @default(1)
+  acceptanceMins  Int       @default(60)
+  config          Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  service  Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, priority])
+}
+
+model LeadPricingRule {
+  id           String   @id @default(cuid())
+  name         String
+  serviceId    String?
+  locationId   String?
+  mode         LeadMode @default(SHARED)
+  priceCents   Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  service  Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+}
+
+model BusinessLeadPreference {
+  id                 String   @id @default(cuid())
+  businessId         String   @unique
+  acceptsLeads       Boolean  @default(true)
+  pauseLeads         Boolean  @default(false)
+  dailyCap           Int?
+  monthlyCap         Int?
+  notifyEmail        Boolean  @default(true)
+  notifySms          Boolean  @default(false)
+  notifyInApp        Boolean  @default(true)
+  exclusiveEligible  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+// ─── Homeowner tools ─────────────────────────────────────────────────────────
+
+model HomeownerProperty {
+  id               String       @id @default(cuid())
+  userId           String
+  locationId       String?
+  nickname         String
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  stateCode        String?
+  postalCode       String?
+  propertyType     PropertyType @default(SINGLE_FAMILY)
+  yearBuilt        Int?
+  squareFootage    Int?
+  heatingType      String?
+  coolingType      String?
+  roofType         String?
+  roofAgeYears     Int?
+  waterSource      String?
+  sewerType        String?
+  notes            String?      @db.Text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location         Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  appliances       Appliance[]
+  maintenanceTasks MaintenanceTask[]
+  documents        Document[]
+
+  @@index([userId])
+  @@index([locationId])
+}
+
+model Appliance {
+  id              String    @id @default(cuid())
+  propertyId      String
+  name            String
+  manufacturer    String?
+  model           String?
+  serialNumber    String?
+  purchaseDate    DateTime?
+  warrantyExpires DateTime?
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  property  HomeownerProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  warranties Warranty[]
+  documents Document[]
+
+  @@index([propertyId])
+}
+
+model Warranty {
+  id          String    @id @default(cuid())
+  applianceId String
+  provider    String?
+  expiresAt   DateTime?
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  appliance Appliance @relation(fields: [applianceId], references: [id], onDelete: Cascade)
+
+  @@index([applianceId])
+}
+
+model MaintenanceTask {
+  id            String    @id @default(cuid())
+  userId        String
+  propertyId    String?
+  title         String
+  description   String?   @db.Text
+  dueDate       DateTime?
+  recurrence    String?
+  isSeasonalSuggestion Boolean @default(false)
+  completedAt   DateTime?
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property     HomeownerProperty?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  completions  MaintenanceCompletion[]
+  documents    Document[]
+
+  @@index([userId, dueDate])
+  @@index([propertyId])
+}
+
+model MaintenanceCompletion {
+  id        String   @id @default(cuid())
+  taskId    String
+  notes     String?  @db.Text
+  completedAt DateTime @default(now())
+
+  task MaintenanceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Document {
+  id           String             @id @default(cuid())
+  userId       String
+  propertyId   String?
+  applianceId  String?
+  taskId       String?
+  title        String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  visibility   DocumentVisibility @default(PRIVATE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property  HomeownerProperty? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  appliance Appliance?         @relation(fields: [applianceId], references: [id], onDelete: SetNull)
+  task      MaintenanceTask?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([propertyId])
+}
+
+// ─── Calculators ─────────────────────────────────────────────────────────────
+
+model Calculator {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  description    String?        @db.Text
+  disclaimer     String?        @db.Text
+  status         PublishStatus  @default(DRAFT)
+  seoTitle       String?
+  seoDescription String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  configuration CalculatorConfiguration?
+  submissions   CalculatorSubmission[]
+}
+
+model CalculatorConfiguration {
+  id           String   @id @default(cuid())
+  calculatorId String   @unique
+  variables    Json
+  formulas     Json
+  assumptions  Json?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  calculator Calculator @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+}
+
+model CalculatorSubmission {
+  id           String   @id @default(cuid())
+  calculatorId String
+  userId       String?
+  inputs       Json
+  results      Json
+  shareToken   String?  @unique
+  consentGiven Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  calculator Calculator @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([calculatorId])
+  @@index([userId])
+}
+
+// ─── Reviews (feature-flagged at launch) ─────────────────────────────────────
+
+model Review {
+  id                String                 @id @default(cuid())
+  businessId        String
+  userId            String
+  rating            Int
+  title             String?
+  body              String?                @db.Text
+  relationship      String
+  moderationStatus  ReviewModerationStatus @default(PENDING)
+  businessResponse  String?                @db.Text
+  respondedAt       DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports  ReviewReport[]
+
+  @@unique([businessId, userId])
+  @@index([businessId, moderationStatus])
+}
+
+model ReviewReport {
+  id        String   @id @default(cuid())
+  reviewId  String
+  reporterId String
+  reason    String   @db.Text
+  createdAt DateTime @default(now())
+
+  review   Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporter User   @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+// ─── Monetization ────────────────────────────────────────────────────────────
+
+model SubscriptionPlan {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?  @db.Text
+  priceCents   Int
+  interval     String   @default("month")
+  entitlements Json
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  businesses    Business[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  businessId       String
+  planId           String
+  status           SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId String?
+  stripeSubId      String?            @unique
+  currentPeriodEnd DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  @@index([businessId])
+  @@index([planId])
+}
+
+model Invoice {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  stripeInvoiceId String?  @unique
+  amountCents     Int
+  status          String
+  hostedUrl       String?
+  createdAt       DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+model PaymentEvent {
+  id          String   @id @default(cuid())
+  provider    String   @default("stripe")
+  eventId     String   @unique
+  type        String
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+}
+
+model Credit {
+  id         String   @id @default(cuid())
+  businessId String
+  amountCents Int
+  reason     String
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel @default(IN_APP)
+  title     String
+  body      String              @db.Text
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model NotificationPreference {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel
+  category  String
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel, category])
+}
+
+// ─── AI content workflow ─────────────────────────────────────────────────────
+
+model AIJob {
+  id           String      @id @default(cuid())
+  type         String
+  status       AIJobStatus @default(QUEUED)
+  input        Json
+  costUsd      Float?
+  errorMessage String?     @db.Text
+  attempts     Int         @default(0)
+  maxAttempts  Int         @default(3)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  generations AIGeneration[]
+
+  @@index([status, createdAt])
+}
+
+model AIGeneration {
+  id             String         @id @default(cuid())
+  jobId          String
+  prompt         String         @db.Text
+  model          String
+  provider       String
+  sourceData     Json?
+  output         Json?
+  reviewStatus   AIReviewStatus @default(PENDING_REVIEW)
+  reviewerId     String?
+  reviewedAt     DateTime?
+  qualityScore   Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  job      AIJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("AIReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([jobId])
+  @@index([reviewStatus])
+}
+
+// ─── Analytics events (first-party) ──────────────────────────────────────────
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  name       String
+  properties Json?
+  sessionId  String?
+  path       String?
+  createdAt  DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([createdAt])
+}
