@@ -59,7 +59,7 @@ export async function SiteHeader({ siteName }: SiteHeaderProps) {
                 </Button>
               ) : null}
               <Button asChild variant="ghost" size="sm">
-                <Link href="/business/leads">Business</Link>
+                <Link href="/business/dashboard">Business</Link>
               </Button>
               <Button asChild variant="secondary" size="sm">
                 <Link href="/homeowner/dashboard">Account</Link>

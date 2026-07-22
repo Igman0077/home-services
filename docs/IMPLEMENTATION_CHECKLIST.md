@@ -47,8 +47,16 @@
 
 ## Phase 4 — Business accounts
 
-- [ ] Claiming & verification
-- [ ] Lead preferences
+- [x] Claiming workflow (submit + admin review + membership)
+- [x] Create business profile (pending review until admin publish)
+- [x] Profile edit: basics, services, areas, hours
+- [x] Lead preferences (caps, pause, notifications)
+- [x] Verification request + admin review
+- [x] Business analytics (lead metrics only — no invented traffic)
+- [x] Subscription plan display foundation (billing later)
+- [x] Contractor landing + public claim CTA
+- [x] Completeness scoring tests
+- [x] Lint / typecheck / tests / build
 
 ## Phase 5 — Homeowner tools
 

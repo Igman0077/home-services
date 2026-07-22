@@ -6,13 +6,16 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 3 — Leads (complete in code)**
+**Phase 4 — Business accounts (complete in code)**
 
-- Multi-step quote request with consent + spam controls
-- Lead routing (shared/exclusive/manual) with plan/cap checks
-- Business lead inbox with contact masking until accept
-- Admin lead management and manual assignment
-- Seed: routing rules, pricing rules, `business@example.com` owner account
+- Claim existing listings + admin claim review
+- Create business profile (pending publish until admin approval)
+- Owner dashboard: profile, services, areas, hours, lead prefs, analytics, plans
+- Verification requests + admin verification review
+- Contractor landing page and public claim CTA
+- Seed logins still include `business@example.com` / `ChangeMeNow!123`
+
+Phases 1–3 (foundation, directory, leads) remain in place.
 
 ## Stack
 

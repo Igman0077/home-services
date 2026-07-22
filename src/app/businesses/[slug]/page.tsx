@@ -2,17 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ClaimBusinessForm } from "@/components/business/claim-business-form";
 import { Breadcrumbs, JsonLdScript } from "@/components/seo/structured-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/auth";
 import {
   breadcrumbJsonLd,
   localBusinessJsonLd,
   verificationLabel,
 } from "@/lib/seo";
-import { absoluteUrl } from "@/lib/utils";
-import { getBusinessBySlug } from "@/server/services/catalog";
 import { SITE_CONFIG } from "@/lib/site-config";
+import { absoluteUrl } from "@/lib/utils";
+import { prisma } from "@/lib/db";
+import { getBusinessBySlug } from "@/server/services/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +50,26 @@ export default async function BusinessProfilePage({ params }: Props) {
   const { slug } = await params;
   const business = await getBusinessBySlug(slug);
   if (!business) notFound();
+
+  const session = await auth();
+  const isMember = session?.user
+    ? Boolean(
+        await prisma.businessMember.findUnique({
+          where: {
+            businessId_userId: {
+              businessId: business.id,
+              userId: session.user.id,
+            },
+          },
+        }),
+      )
+    : false;
+  const canClaim =
+    !isMember &&
+    business.claimStatus !== "APPROVED" &&
+    (business.claimStatus === "UNCLAIMED" ||
+      business.claimStatus === "REJECTED" ||
+      business.claimStatus === "MORE_INFO_REQUIRED");
 
   const verification = verificationLabel(business.verificationStatus);
   const pageUrl = absoluteUrl(`/businesses/${business.slug}`);
@@ -240,10 +263,32 @@ export default async function BusinessProfilePage({ params }: Props) {
         </Button>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground">
-        Claim status: {business.claimStatus.replaceAll("_", " ").toLowerCase()}.
-        Business claiming workflow ships in Phase 4.
-      </p>
+      <section className="mt-12 rounded-lg border border-border bg-card p-5">
+        <h2 className="text-xl font-semibold">Own this business?</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Claim status:{" "}
+          {business.claimStatus.replaceAll("_", " ").toLowerCase()}.
+          {isMember
+            ? " You already manage this listing."
+            : business.claimStatus === "APPROVED"
+              ? " This listing is already claimed."
+              : business.claimStatus === "PENDING"
+                ? " A claim is awaiting administrator review."
+                : " Submit evidence of ownership for administrator review."}
+        </p>
+        {isMember ? (
+          <Button asChild className="mt-4" variant="outline">
+            <Link href="/business/dashboard">Open business dashboard</Link>
+          </Button>
+        ) : canClaim ? (
+          <div className="mt-4 max-w-lg">
+            <ClaimBusinessForm
+              businessId={business.id}
+              isSignedIn={Boolean(session?.user)}
+            />
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }

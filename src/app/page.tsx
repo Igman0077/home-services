@@ -191,7 +191,7 @@ export default async function HomePage() {
           {featured.length === 0 ? (
             <p className="mt-6 text-sm text-muted-foreground">
               No published businesses yet. Seed sample data in development, or
-              add listings in admin once Phase 4 claiming is live.
+              claim/create a listing from the contractor tools.
             </p>
           ) : (
             <ul className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -230,11 +230,11 @@ export default async function HomePage() {
               For contractors
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Claim your profile, set service areas, and receive leads when
-              business accounts ship in Phase 4.
+              Claim your profile, set service areas, manage lead preferences,
+              and track basic performance from your business dashboard.
             </p>
             <Button asChild className="mt-5">
-              <Link href="/for-contractors">Contractor info</Link>
+              <Link href="/for-contractors">Get started</Link>
             </Button>
           </div>
         </div>
