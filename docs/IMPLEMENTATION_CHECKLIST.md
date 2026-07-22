@@ -24,11 +24,15 @@
 
 ## Phase 2 — Public directory
 
-- [ ] Homepage search
-- [ ] Business profiles
-- [ ] Local service pages + page readiness
-- [ ] Search/filter
-- [ ] Structured data expansion
+- [x] Homepage search
+- [x] Business profiles
+- [x] Local service pages + page readiness
+- [x] Search/filter
+- [x] Structured data expansion
+- [x] Dynamic sitemap (services, locations, businesses, indexable local pages)
+- [x] Sample businesses + local page seed data
+- [x] Directory unit tests (readiness, filters, verification labels)
+- [x] Lint / typecheck / tests pass
 
 ## Phase 3 — Leads
 

@@ -612,6 +612,445 @@ async function seedPlans() {
   }
 }
 
+async function seedSampleBusinesses() {
+  const freePlan = await prisma.subscriptionPlan.findUnique({
+    where: { slug: "free" },
+  });
+  const standardPlan = await prisma.subscriptionPlan.findUnique({
+    where: { slug: "standard" },
+  });
+
+  const roofing = await prisma.service.findUnique({ where: { slug: "roofing" } });
+  const plumbing = await prisma.service.findUnique({
+    where: { slug: "plumbing" },
+  });
+  const hvac = await prisma.service.findUnique({ where: { slug: "hvac" } });
+  const electrical = await prisma.service.findUnique({
+    where: { slug: "electrical" },
+  });
+  const treeRemoval = await prisma.service.findUnique({
+    where: { slug: "tree-removal" },
+  });
+
+  const city = async (slug: string) =>
+    prisma.location.findFirst({ where: { slug, type: "CITY" } });
+
+  const potsdam = await city("potsdam");
+  const canton = await city("canton");
+  const massena = await city("massena");
+  const ogdensburg = await city("ogdensburg");
+  const malone = await city("malone");
+  const watertown = await city("watertown");
+  const plattsburgh = await city("plattsburgh");
+
+  if (!roofing || !plumbing || !hvac || !electrical || !treeRemoval) {
+    console.warn("Skipping business seed — services missing");
+    return;
+  }
+
+  const samples: Array<{
+    name: string;
+    slug: string;
+    description: string;
+    city: string;
+    stateCode: string;
+    postalCode: string;
+    phone: string;
+    website?: string;
+    addressLine1?: string;
+    isServiceAreaBusiness: boolean;
+    offersEmergency: boolean;
+    offersFreeEstimate: boolean;
+    offersFinancing?: boolean;
+    yearEstablished: number;
+    licenseDetails?: string;
+    insuranceDetails?: string;
+    verificationStatus: "UNVERIFIED" | "BUSINESS_VERIFIED" | "PLATFORM_VERIFIED";
+    claimStatus: "UNCLAIMED";
+    isFeatured: boolean;
+    planId?: string;
+    serviceIds: string[];
+    locationIds: string[];
+  }> = [
+    {
+      name: "Sample North Country Roofing",
+      slug: "sample-north-country-roofing",
+      description:
+        "SAMPLE DATA: Fictional roofing contractor used for development. Specializes in asphalt and metal roofs suited to heavy snow loads.",
+      city: "Potsdam",
+      stateCode: "NY",
+      postalCode: "13676",
+      phone: "(315) 555-0101",
+      website: "https://example.com/sample-roofing",
+      isServiceAreaBusiness: true,
+      offersEmergency: true,
+      offersFreeEstimate: true,
+      yearEstablished: 2008,
+      licenseDetails: "Self-reported sample license #NY-ROOF-0000 (not real)",
+      insuranceDetails: "Self-reported general liability (sample only)",
+      verificationStatus: "UNVERIFIED",
+      claimStatus: "UNCLAIMED",
+      isFeatured: true,
+      planId: standardPlan?.id ?? freePlan?.id,
+      serviceIds: [roofing.id],
+      locationIds: [potsdam?.id, canton?.id, massena?.id].filter(
+        (id): id is string => Boolean(id),
+      ),
+    },
+    {
+      name: "Sample Seaway Plumbing Co.",
+      slug: "sample-seaway-plumbing",
+      description:
+        "SAMPLE DATA: Fictional plumber serving St. Lawrence County. Listed for UI and lead-routing tests only.",
+      city: "Canton",
+      stateCode: "NY",
+      postalCode: "13617",
+      phone: "(315) 555-0142",
+      isServiceAreaBusiness: true,
+      offersEmergency: true,
+      offersFreeEstimate: true,
+      offersFinancing: false,
+      yearEstablished: 2015,
+      verificationStatus: "BUSINESS_VERIFIED",
+      claimStatus: "UNCLAIMED",
+      isFeatured: false,
+      planId: freePlan?.id,
+      serviceIds: [plumbing.id],
+      locationIds: [canton?.id, potsdam?.id, ogdensburg?.id].filter(
+        (id): id is string => Boolean(id),
+      ),
+    },
+    {
+      name: "Sample Adirondack HVAC",
+      slug: "sample-adirondack-hvac",
+      description:
+        "SAMPLE DATA: Fictional heating and cooling company for Malone and nearby towns.",
+      city: "Malone",
+      stateCode: "NY",
+      postalCode: "12953",
+      phone: "(518) 555-0188",
+      isServiceAreaBusiness: true,
+      offersEmergency: true,
+      offersFreeEstimate: true,
+      yearEstablished: 2011,
+      verificationStatus: "UNVERIFIED",
+      claimStatus: "UNCLAIMED",
+      isFeatured: true,
+      planId: standardPlan?.id ?? freePlan?.id,
+      serviceIds: [hvac.id],
+      locationIds: [malone?.id].filter((id): id is string => Boolean(id)),
+    },
+    {
+      name: "Sample River Electric",
+      slug: "sample-river-electric",
+      description:
+        "SAMPLE DATA: Fictional electrician covering Watertown-area residential work.",
+      city: "Watertown",
+      stateCode: "NY",
+      postalCode: "13601",
+      phone: "(315) 555-0199",
+      isServiceAreaBusiness: false,
+      addressLine1: "100 Sample Street",
+      offersEmergency: false,
+      offersFreeEstimate: true,
+      yearEstablished: 2001,
+      verificationStatus: "PLATFORM_VERIFIED",
+      claimStatus: "UNCLAIMED",
+      isFeatured: false,
+      planId: standardPlan?.id ?? freePlan?.id,
+      serviceIds: [electrical.id],
+      locationIds: [watertown?.id].filter((id): id is string => Boolean(id)),
+    },
+    {
+      name: "Sample Northwoods Tree Care",
+      slug: "sample-northwoods-tree-care",
+      description:
+        "SAMPLE DATA: Fictional tree removal and storm cleanup crew for Clinton County.",
+      city: "Plattsburgh",
+      stateCode: "NY",
+      postalCode: "12901",
+      phone: "(518) 555-0160",
+      isServiceAreaBusiness: true,
+      offersEmergency: true,
+      offersFreeEstimate: true,
+      yearEstablished: 2018,
+      verificationStatus: "UNVERIFIED",
+      claimStatus: "UNCLAIMED",
+      isFeatured: false,
+      planId: freePlan?.id,
+      serviceIds: [treeRemoval.id],
+      locationIds: [plattsburgh?.id].filter((id): id is string => Boolean(id)),
+    },
+  ];
+
+  for (const sample of samples) {
+    const business = await prisma.business.upsert({
+      where: { slug: sample.slug },
+      create: {
+        name: sample.name,
+        slug: sample.slug,
+        description: sample.description,
+        city: sample.city,
+        stateCode: sample.stateCode,
+        postalCode: sample.postalCode,
+        phone: sample.phone,
+        website: sample.website,
+        addressLine1: sample.addressLine1,
+        isServiceAreaBusiness: sample.isServiceAreaBusiness,
+        offersEmergency: sample.offersEmergency,
+        offersFreeEstimate: sample.offersFreeEstimate,
+        offersFinancing: sample.offersFinancing ?? false,
+        yearEstablished: sample.yearEstablished,
+        licenseDetails: sample.licenseDetails,
+        insuranceDetails: sample.insuranceDetails,
+        verificationStatus: sample.verificationStatus,
+        claimStatus: sample.claimStatus,
+        publishStatus: "PUBLISHED",
+        isFeatured: sample.isFeatured,
+        isSponsored: false,
+        isSampleData: true,
+        subscriptionPlanId: sample.planId,
+        servesResidential: true,
+        profileCompleteness: 70,
+      },
+      update: {
+        description: sample.description,
+        publishStatus: "PUBLISHED",
+        isSampleData: true,
+        isFeatured: sample.isFeatured,
+        verificationStatus: sample.verificationStatus,
+      },
+    });
+
+    for (const serviceId of sample.serviceIds) {
+      await prisma.businessService.upsert({
+        where: {
+          businessId_serviceId: { businessId: business.id, serviceId },
+        },
+        create: { businessId: business.id, serviceId },
+        update: {},
+      });
+    }
+
+    for (const locationId of sample.locationIds) {
+      await prisma.businessServiceArea.upsert({
+        where: {
+          businessId_locationId: { businessId: business.id, locationId },
+        },
+        create: { businessId: business.id, locationId },
+        update: {},
+      });
+    }
+
+    await prisma.businessLeadPreference.upsert({
+      where: { businessId: business.id },
+      create: {
+        businessId: business.id,
+        acceptsLeads: true,
+        pauseLeads: false,
+        notifyEmail: true,
+      },
+      update: {},
+    });
+  }
+}
+
+async function seedLocalServicePages() {
+  const combos = [
+    {
+      serviceSlug: "roofing",
+      citySlug: "potsdam",
+      h1: "Roofing in Potsdam, NY",
+      introduction:
+        "Potsdam homeowners deal with heavy lake-effect snow, ice dams, and freeze-thaw cycles that stress asphalt and metal roofs. This page helps you understand local roofing needs and find professionals who list Potsdam in their service area.",
+      serviceExplanation:
+        "Roofing work in the North Country often includes repair of storm damage, full replacements, ice-and-water shield upgrades, and ventilation improvements that reduce ice dam risk.",
+      localProblems:
+        "Common local issues include ice dams along eaves, wind-driven snow infiltration, aging three-tab shingles, and moisture problems in attics after long winters.",
+      seasonalNotes:
+        "Emergency tarp and repair demand rises after winter storms. Full replacements are most practical from late spring through early fall when temperatures support proper shingle sealing.",
+      projectFactors:
+        "Project scope depends on roof pitch, layers to tear off, chimney flashing condition, ventilation, and material choice (asphalt vs. metal for snow shedding).",
+      priceRangeLow: 9000,
+      priceRangeHigh: 28000,
+      publish: true,
+    },
+    {
+      serviceSlug: "plumbing",
+      citySlug: "canton",
+      h1: "Plumbing in Canton, NY",
+      introduction:
+        "Canton’s cold winters increase the risk of frozen pipes, water heater failures, and urgent drain issues. Use this page to learn what local plumbing projects typically involve and which listed businesses serve Canton.",
+      serviceExplanation:
+        "Residential plumbing covers leak repair, drain clearing, fixture replacement, water heaters, and emergency shutoff response when pipes freeze.",
+      localProblems:
+        "Homeowners often call for frozen supply lines, aging galvanized piping, sump pump failures during spring thaw, and water heaters struggling in older homes.",
+      seasonalNotes:
+        "Freeze protection and outdoor faucet shutdown matter each fall. Mid-winter emergencies should prioritize thawing and leak containment before cosmetic repairs.",
+      projectFactors:
+        "Costs vary with access to pipes, whether walls or floors must be opened, water quality, and whether a repair or full line replacement is needed.",
+      priceRangeLow: 150,
+      priceRangeHigh: 4500,
+      publish: true,
+    },
+    {
+      serviceSlug: "hvac",
+      citySlug: "malone",
+      h1: "Heating and HVAC in Malone, NY",
+      introduction:
+        "Malone winters put continuous demand on furnaces, boilers, and heat pumps. This guide covers local heating considerations and connects you to HVAC businesses that list Malone as a service area.",
+      serviceExplanation:
+        "HVAC service includes furnace repair, boiler maintenance, filter changes, thermostat upgrades, and seasonal tune-ups that help systems survive long heating seasons.",
+      localProblems:
+        "Typical issues include ignition failures on cold mornings, uneven heat in older farmhouses, and systems oversized or undersized for poorly insulated homes.",
+      seasonalNotes:
+        "Schedule maintenance before heating season. Mid-winter no-heat calls are common; keep furnace filters accessible and know your emergency shutoffs.",
+      projectFactors:
+        "Fuel type, duct condition, insulation, and home square footage strongly influence repair versus replacement decisions.",
+      priceRangeLow: 200,
+      priceRangeHigh: 12000,
+      publish: true,
+    },
+    {
+      serviceSlug: "electrical",
+      citySlug: "watertown",
+      h1: "Electrical services in Watertown, NY",
+      introduction:
+        "Watertown homes range from older downtown properties to newer builds — electrical needs vary accordingly. This page explains common projects and lists electricians serving the area.",
+      serviceExplanation:
+        "Electrical work may include panel upgrades, outlet additions, generator interlocks, lighting, and troubleshooting intermittent breaker trips.",
+      localProblems:
+        "Homeowners often need panel capacity upgrades, GFCI protection in wet areas, and safer wiring replacements in mid-century homes.",
+      seasonalNotes:
+        "Generator interest rises before winter storms. Indoor projects can proceed year-round; outdoor lighting and service mast work may wait for milder weather.",
+      projectFactors:
+        "Age of wiring, panel amperage, permitting, and whether the home has aluminum branch circuits all affect scope.",
+      priceRangeLow: 150,
+      priceRangeHigh: 8000,
+      publish: false,
+    },
+    {
+      serviceSlug: "tree-removal",
+      citySlug: "plattsburgh",
+      h1: "Tree removal in Plattsburgh, NY",
+      introduction:
+        "Plattsburgh’s mix of residential lots and wind exposure means storm-damaged and hazardous trees need careful removal. Learn what affects tree work locally and which sample crews list this area.",
+      serviceExplanation:
+        "Tree services include removal, pruning, stump grinding, and storm cleanup. Crews should plan drop zones carefully near homes and power lines.",
+      localProblems:
+        "Ice and wind damage, trees planted too close to foundations, and dead ash or softwood species are frequent concerns.",
+      seasonalNotes:
+        "Storm cleanup spikes after high-wind events. Frozen ground can help protect lawns during winter removals, while leaf-off season improves visibility.",
+      projectFactors:
+        "Tree height, proximity to structures, access for chippers, and whether the stump is ground afterward drive cost and scheduling.",
+      priceRangeLow: 400,
+      priceRangeHigh: 3500,
+      publish: true,
+    },
+  ];
+
+  for (const combo of combos) {
+    const service = await prisma.service.findUnique({
+      where: { slug: combo.serviceSlug },
+    });
+    const location = await prisma.location.findFirst({
+      where: { slug: combo.citySlug, type: "CITY" },
+    });
+    if (!service || !location) continue;
+
+    const slugPath = `new-york/${combo.citySlug}/${combo.serviceSlug}`;
+    const contentChars = [
+      combo.introduction,
+      combo.serviceExplanation,
+      combo.localProblems,
+      combo.seasonalNotes,
+      combo.projectFactors,
+    ].join(" ").length;
+
+    const businessCount = await prisma.business.count({
+      where: {
+        publishStatus: "PUBLISHED",
+        deletedAt: null,
+        services: { some: { serviceId: service.id } },
+        serviceAreas: { some: { locationId: location.id } },
+      },
+    });
+
+    const qualityScore = Math.min(
+      100,
+      40 + Math.floor(contentChars / 40) + (businessCount > 0 ? 20 : 0),
+    );
+    const isIndexable =
+      combo.publish && qualityScore >= 70 && businessCount > 0;
+
+    const page = await prisma.localServicePage.upsert({
+      where: { slugPath },
+      create: {
+        serviceId: service.id,
+        locationId: location.id,
+        slugPath,
+        h1: combo.h1,
+        introduction: combo.introduction,
+        serviceExplanation: combo.serviceExplanation,
+        localProblems: combo.localProblems,
+        seasonalNotes: combo.seasonalNotes,
+        projectFactors: combo.projectFactors,
+        priceRangeLow: combo.priceRangeLow,
+        priceRangeHigh: combo.priceRangeHigh,
+        priceDisclaimer:
+          "Estimates only. Actual prices vary. Not a bid or professional appraisal.",
+        status: combo.publish ? "PUBLISHED" : "DRAFT",
+        qualityScore,
+        isIndexable,
+        indexDirective: isIndexable ? "INDEX" : "NOINDEX",
+        seoTitle: `${combo.h1} | Local professionals`,
+        seoDescription: combo.introduction.slice(0, 155),
+        canonicalPath: `/${slugPath}`,
+        lastReviewedAt: combo.publish ? new Date() : null,
+        reviewedByName: combo.publish ? "Seed Editor" : null,
+        publishedAt: combo.publish ? new Date() : null,
+      },
+      update: {
+        introduction: combo.introduction,
+        serviceExplanation: combo.serviceExplanation,
+        localProblems: combo.localProblems,
+        seasonalNotes: combo.seasonalNotes,
+        projectFactors: combo.projectFactors,
+        qualityScore,
+        isIndexable,
+        indexDirective: isIndexable ? "INDEX" : "NOINDEX",
+        status: combo.publish ? "PUBLISHED" : "DRAFT",
+      },
+    });
+
+    await prisma.fAQ.deleteMany({ where: { localServicePageId: page.id } });
+    await prisma.fAQ.createMany({
+      data: [
+        {
+          question: `How do I choose a ${service.name.toLowerCase()} professional in ${location.name}?`,
+          answer:
+            "Compare published profiles, confirm they list your town in their service area, ask about insurance and licensing documentation, and request written estimates. This platform does not invent ratings.",
+          sortOrder: 1,
+          serviceId: service.id,
+          locationId: location.id,
+          localServicePageId: page.id,
+          isActive: true,
+        },
+        {
+          question: "Are the prices on this page guarantees?",
+          answer:
+            "No. Ranges are educational estimates only. Final pricing depends on an on-site assessment by a contractor.",
+          sortOrder: 2,
+          serviceId: service.id,
+          locationId: location.id,
+          localServicePageId: page.id,
+          isActive: true,
+        },
+      ],
+    });
+  }
+}
+
 async function main() {
   console.info("Seeding North Country Home Services…");
   await seedRolesAndPermissions();
@@ -620,11 +1059,13 @@ async function main() {
   await seedServices();
   await seedLocations();
   await seedPlans();
+  await seedSampleBusinesses();
+  await seedLocalServicePages();
   await prisma.auditLog.create({
     data: {
       action: "seed.completed",
       entityType: "System",
-      metadata: { phase: 1 },
+      metadata: { phase: 2 },
     },
   });
   console.info("Seed complete.");

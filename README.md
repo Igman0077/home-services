@@ -6,19 +6,14 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 1 — Foundation (in progress / complete when DB is migrated & seeded)**
+**Phase 2 — Public directory (complete in code)**
 
-- Next.js App Router + TypeScript strict + Tailwind CSS
-- Prisma schema (PostgreSQL) covering identity, catalog, leads, CMS, monetization, AI, and more
-- Auth.js (NextAuth v5) credentials auth with RBAC
-- Design system (accessible UI primitives)
-- Public navigation, homepage, services & locations catalog pages
-- Admin foundation: overview, services, locations, settings, audit log
-- Seed data for 4 North Country counties, launch services, roles, plans
-- Provider abstractions (email console adapter)
-- Unit tests for RBAC and slug helpers
-
-Later phases: public directory polish, leads, business accounts, homeowner tools, CMS/AI, monetization, optimization.
+- Homepage search + popular services/locations/businesses
+- Business directory with filters and profile pages
+- Local service pages at `/{state}/{city}/{service}` with readiness/noindex gates
+- Structured data (Organization, WebSite, BreadcrumbList, Service, LocalBusiness, FAQPage when eligible)
+- Dynamic sitemap + `/api/search`
+- Seed: labeled sample businesses and reviewed local page drafts
 
 ## Stack
 
