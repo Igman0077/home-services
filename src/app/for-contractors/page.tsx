@@ -73,8 +73,9 @@ export default function ForContractorsPage() {
       </div>
 
       <p className="mt-8 text-sm text-muted-foreground">
-        Paid upgrades and Stripe billing arrive in a later phase. Plan
-        entitlements are already modeled so featured placement stays honest.
+        Paid upgrades use Stripe when configured, or the local mock billing
+        provider for demos. Featured and Sponsored badges only appear when
+        entitlements (or an admin override) grant them.
       </p>
     </div>
   );

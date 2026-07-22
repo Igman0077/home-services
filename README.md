@@ -6,15 +6,15 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 6 — Content & AI (complete in code)**
+**Phase 7 — Monetization (complete in code)**
 
-- Guides CMS with draft → review → approve → publish + revisions
-- Public guides with Article + FAQ structured data
-- AI mock provider + human review queue (approve creates draft only)
-- Roof replacement cost-range calculator with disclaimers
-- Seed: published winter roof guide + roof calculator
+- Payment provider abstraction (`mock` default, `stripe` when keys set)
+- Checkout + customer portal actions for business owners
+- Webhook endpoint `/api/billing/webhook` with entitlement sync
+- Featured / Sponsored placement from plan entitlements (+ admin overrides)
+- Admin billing dashboard
 
-Phases 1–5 remain in place.
+Phases 1–6 remain in place.
 
 ## Stack
 

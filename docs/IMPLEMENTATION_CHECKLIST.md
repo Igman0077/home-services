@@ -84,8 +84,14 @@
 
 ## Phase 7 — Monetization
 
-- [ ] Stripe integration
-- [ ] Featured / sponsored labels
+- [x] Payment provider abstraction (mock + Stripe)
+- [x] Checkout / portal / webhook sync
+- [x] Apply plan entitlements → featured/sponsored flags
+- [x] Business plans upgrade UI
+- [x] Admin billing + placement controls
+- [x] `SubscriptionPlan.stripePriceId` migration
+- [x] Billing unit tests
+- [x] Lint / typecheck / tests / build
 
 ## Phase 8 — Optimization
 

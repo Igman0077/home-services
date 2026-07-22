@@ -549,6 +549,7 @@ async function seedPlans() {
         leadEligible: false,
         maxPhotos: 3,
         featured: false,
+        sponsored: false,
       },
       sortOrder: 1,
     },
@@ -560,6 +561,7 @@ async function seedPlans() {
         leadEligible: true,
         maxPhotos: 20,
         featured: false,
+        sponsored: false,
         analytics: true,
       },
       sortOrder: 2,
@@ -572,6 +574,7 @@ async function seedPlans() {
         leadEligible: true,
         maxPhotos: 50,
         featured: true,
+        sponsored: false,
         analytics: true,
         priorityLeads: true,
       },
@@ -585,6 +588,7 @@ async function seedPlans() {
         leadEligible: true,
         exclusiveEligible: true,
         featured: true,
+        sponsored: true,
         analytics: true,
       },
       sortOrder: 4,
@@ -592,6 +596,9 @@ async function seedPlans() {
   ];
 
   for (const plan of plans) {
+    const envPrice =
+      process.env[`STRIPE_PRICE_${plan.slug.toUpperCase().replace(/-/g, "_")}`] ??
+      null;
     await prisma.subscriptionPlan.upsert({
       where: { slug: plan.slug },
       create: {
@@ -602,17 +609,25 @@ async function seedPlans() {
         sortOrder: plan.sortOrder,
         isActive: true,
         description: `${plan.name} contractor plan`,
+        stripePriceId: envPrice,
       },
       update: {
         priceCents: plan.priceCents,
         entitlements: plan.entitlements,
         isActive: true,
+        stripePriceId: envPrice,
       },
     });
   }
 }
 
 async function seedSampleBusinesses() {
+  const premiumPlan = await prisma.subscriptionPlan.findUnique({
+    where: { slug: "premium" },
+  });
+  const exclusivePlan = await prisma.subscriptionPlan.findUnique({
+    where: { slug: "exclusive-territory" },
+  });
   const freePlan = await prisma.subscriptionPlan.findUnique({
     where: { slug: "free" },
   });
@@ -668,6 +683,7 @@ async function seedSampleBusinesses() {
     verificationStatus: "UNVERIFIED" | "BUSINESS_VERIFIED" | "PLATFORM_VERIFIED";
     claimStatus: "UNCLAIMED";
     isFeatured: boolean;
+    isSponsored?: boolean;
     planId?: string;
     serviceIds: string[];
     locationIds: string[];
@@ -691,7 +707,8 @@ async function seedSampleBusinesses() {
       verificationStatus: "UNVERIFIED",
       claimStatus: "UNCLAIMED",
       isFeatured: true,
-      planId: standardPlan?.id ?? freePlan?.id,
+      isSponsored: false,
+      planId: premiumPlan?.id ?? standardPlan?.id ?? freePlan?.id,
       serviceIds: [roofing.id],
       locationIds: [potsdam?.id, canton?.id, massena?.id].filter(
         (id): id is string => Boolean(id),
@@ -736,7 +753,8 @@ async function seedSampleBusinesses() {
       verificationStatus: "UNVERIFIED",
       claimStatus: "UNCLAIMED",
       isFeatured: true,
-      planId: standardPlan?.id ?? freePlan?.id,
+      isSponsored: true,
+      planId: exclusivePlan?.id ?? premiumPlan?.id ?? freePlan?.id,
       serviceIds: [hvac.id],
       locationIds: [malone?.id].filter((id): id is string => Boolean(id)),
     },
@@ -807,7 +825,7 @@ async function seedSampleBusinesses() {
         claimStatus: sample.claimStatus,
         publishStatus: "PUBLISHED",
         isFeatured: sample.isFeatured,
-        isSponsored: false,
+        isSponsored: sample.isSponsored ?? false,
         isSampleData: true,
         subscriptionPlanId: sample.planId,
         servesResidential: true,
@@ -818,7 +836,9 @@ async function seedSampleBusinesses() {
         publishStatus: "PUBLISHED",
         isSampleData: true,
         isFeatured: sample.isFeatured,
+        isSponsored: sample.isSponsored ?? false,
         verificationStatus: sample.verificationStatus,
+        subscriptionPlanId: sample.planId,
       },
     });
 
@@ -1364,7 +1384,7 @@ async function main() {
     data: {
       action: "seed.completed",
       entityType: "System",
-      metadata: { phase: 6 },
+      metadata: { phase: 7 },
     },
   });
   console.info("Seed complete.");

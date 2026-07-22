@@ -15,6 +15,7 @@ const nav = [
   { href: "/admin/businesses", label: "Businesses" },
   { href: "/admin/guides", label: "Guides" },
   { href: "/admin/ai", label: "AI drafts" },
+  { href: "/admin/billing", label: "Billing" },
   { href: "/admin/services", label: "Services" },
   { href: "/admin/locations", label: "Locations" },
   { href: "/admin/settings", label: "Site settings" },

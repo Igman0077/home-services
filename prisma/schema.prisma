@@ -1153,17 +1153,18 @@ model ReviewReport {
 // ─── Monetization ────────────────────────────────────────────────────────────
 
 model SubscriptionPlan {
-  id           String   @id @default(cuid())
-  name         String
-  slug         String   @unique
-  description  String?  @db.Text
-  priceCents   Int
-  interval     String   @default("month")
-  entitlements Json
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?  @db.Text
+  priceCents    Int
+  interval      String   @default("month")
+  entitlements  Json
+  stripePriceId String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   businesses    Business[]
   subscriptions Subscription[]
