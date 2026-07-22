@@ -60,7 +60,15 @@
 
 ## Phase 5 — Homeowner tools
 
-- [ ] Properties, tasks, appliances, documents
+- [x] Properties CRUD (soft delete / archive)
+- [x] Maintenance tasks + completions + recurrence
+- [x] Northern NY seasonal suggestions
+- [x] Appliances + warranty records
+- [x] Document vault (local storage adapter + external URLs)
+- [x] Favorite businesses
+- [x] Seed sample homeowner property data
+- [x] Seasonal suggestion unit tests
+- [x] Lint / typecheck / tests / build
 
 ## Phase 6 — Content & AI
 

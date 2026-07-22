@@ -1162,6 +1162,97 @@ async function seedBusinessOwnerAccess() {
   }
 }
 
+async function seedHomeownerTools() {
+  const homeowner = await prisma.user.findUnique({
+    where: { email: "homeowner@example.com" },
+  });
+  if (!homeowner) return;
+
+  const existing = await prisma.homeownerProperty.findFirst({
+    where: { userId: homeowner.id, nickname: "Sample Potsdam home" },
+  });
+  if (existing) return;
+
+  const property = await prisma.homeownerProperty.create({
+    data: {
+      userId: homeowner.id,
+      nickname: "Sample Potsdam home",
+      addressLine1: "12 Market St",
+      city: "Potsdam",
+      stateCode: "NY",
+      postalCode: "13676",
+      propertyType: "SINGLE_FAMILY",
+      yearBuilt: 1978,
+      heatingType: "Forced air / oil",
+      roofType: "Asphalt shingle",
+      roofAgeYears: 14,
+      notes: "Sample development property for Phase 5 demos.",
+      appliances: {
+        create: [
+          {
+            name: "Furnace",
+            manufacturer: "SampleHeat",
+            model: "SH-80",
+            warrantyExpires: new Date("2027-10-01"),
+            warranties: {
+              create: {
+                provider: "SampleHeat Extended",
+                expiresAt: new Date("2027-10-01"),
+              },
+            },
+          },
+          {
+            name: "Water heater",
+            manufacturer: "SampleTank",
+            model: "ST-40",
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.maintenanceTask.create({
+    data: {
+      userId: homeowner.id,
+      propertyId: property.id,
+      title: "Replace furnace filter",
+      description: "Sample recurring filter change.",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      recurrence: "monthly",
+    },
+  });
+
+  await prisma.document.create({
+    data: {
+      userId: homeowner.id,
+      propertyId: property.id,
+      title: "Sample furnace manual (external)",
+      fileName: "furnace-manual",
+      mimeType: "text/uri-list",
+      sizeBytes: 0,
+      storageKey: "external:https://example.com/furnace-manual",
+      visibility: "PRIVATE",
+    },
+  });
+
+  const sampleBiz = await prisma.business.findFirst({
+    where: { isSampleData: true, publishStatus: "PUBLISHED" },
+    select: { id: true },
+  });
+  if (sampleBiz) {
+    await prisma.favoriteBusiness.upsert({
+      where: {
+        userId_businessId: {
+          userId: homeowner.id,
+          businessId: sampleBiz.id,
+        },
+      },
+      create: { userId: homeowner.id, businessId: sampleBiz.id },
+      update: {},
+    });
+  }
+}
+
 async function main() {
   console.info("Seeding North Country Home Services…");
   await seedRolesAndPermissions();
@@ -1174,11 +1265,12 @@ async function main() {
   await seedLocalServicePages();
   await seedLeadRouting();
   await seedBusinessOwnerAccess();
+  await seedHomeownerTools();
   await prisma.auditLog.create({
     data: {
       action: "seed.completed",
       entityType: "System",
-      metadata: { phase: 3 },
+      metadata: { phase: 5 },
     },
   });
   console.info("Seed complete.");
@@ -1186,6 +1278,7 @@ async function main() {
     `Admin: ${process.env.SEED_ADMIN_EMAIL ?? "admin@example.com"} / (SEED_ADMIN_PASSWORD)`,
   );
   console.info("Business owner: business@example.com / ChangeMeNow!123");
+  console.info("Homeowner: homeowner@example.com / ChangeMeNow!123");
 }
 
 main()

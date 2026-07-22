@@ -6,16 +6,16 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 4 — Business accounts (complete in code)**
+**Phase 5 — Homeowner tools (complete in code)**
 
-- Claim existing listings + admin claim review
-- Create business profile (pending publish until admin approval)
-- Owner dashboard: profile, services, areas, hours, lead prefs, analytics, plans
-- Verification requests + admin verification review
-- Contractor landing page and public claim CTA
-- Seed logins still include `business@example.com` / `ChangeMeNow!123`
+- Properties with heating/roof/utility details
+- Maintenance tasks + Northern NY seasonal suggestions
+- Appliances & warranty notes
+- Private document vault (local file storage + external URL refs)
+- Saved businesses (favorites)
+- Seed demo data for `homeowner@example.com`
 
-Phases 1–3 (foundation, directory, leads) remain in place.
+Phases 1–4 (foundation, directory, leads, business accounts) remain in place.
 
 ## Stack
 

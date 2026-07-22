@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ClaimBusinessForm } from "@/components/business/claim-business-form";
+import { FavoriteBusinessButton } from "@/components/homeowner/favorite-button";
 import { Breadcrumbs, JsonLdScript } from "@/components/seo/structured-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,18 @@ export default async function BusinessProfilePage({ params }: Props) {
             businessId_userId: {
               businessId: business.id,
               userId: session.user.id,
+            },
+          },
+        }),
+      )
+    : false;
+  const isFavorited = session?.user
+    ? Boolean(
+        await prisma.favoriteBusiness.findUnique({
+          where: {
+            userId_businessId: {
+              userId: session.user.id,
+              businessId: business.id,
             },
           },
         }),
@@ -258,6 +271,11 @@ export default async function BusinessProfilePage({ params }: Props) {
             Request a quote
           </Link>
         </Button>
+        <FavoriteBusinessButton
+          businessId={business.id}
+          isFavorited={isFavorited}
+          isSignedIn={Boolean(session?.user)}
+        />
         <Button asChild variant="outline">
           <Link href="/businesses">Back to directory</Link>
         </Button>
