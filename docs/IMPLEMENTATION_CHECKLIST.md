@@ -95,4 +95,11 @@
 
 ## Phase 8 — Optimization
 
-- [ ] E2E tests, security/a11y/perf/SEO review
+- [x] Security headers + middleware probe blocking
+- [x] API rate limits (search + register)
+- [x] Mobile navigation accessibility
+- [x] SEO metadata / robots / audit helper
+- [x] Perf defaults (compress, images, package imports)
+- [x] Playwright public smoke E2E
+- [x] Launch review document
+- [x] Lint / typecheck / unit tests / build / e2e

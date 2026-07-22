@@ -6,15 +6,15 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 7 — Monetization (complete in code)**
+**Phase 8 — Optimization (complete in code)**
 
-- Payment provider abstraction (`mock` default, `stripe` when keys set)
-- Checkout + customer portal actions for business owners
-- Webhook endpoint `/api/billing/webhook` with entitlement sync
-- Featured / Sponsored placement from plan entitlements (+ admin overrides)
-- Admin billing dashboard
+- Security headers + probe blocking + API rate limits
+- Mobile nav a11y + SEO metadata/robots polish
+- Perf defaults (compress, image formats, package import optimize)
+- Playwright public smoke suite (`npm run test:e2e`)
+- Launch review notes in `docs/PHASE8_LAUNCH_REVIEW.md`
 
-Phases 1–6 remain in place.
+Phases 1–7 remain in place. Platform build plan is complete in code.
 
 ## Stack
 

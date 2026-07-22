@@ -11,23 +11,25 @@ export const metadata = {
 };
 
 export default async function LocationsPage() {
-  const states = await prisma.location.findMany({
-    where: { type: "STATE", isActive: true },
-    orderBy: { name: "asc" },
-    include: {
-      children: {
-        where: { type: "COUNTY", isActive: true },
-        orderBy: { name: "asc" },
-        include: {
-          children: {
-            where: { type: "CITY", isActive: true },
-            orderBy: { name: "asc" },
-            take: 8,
+  const states = await prisma.location
+    .findMany({
+      where: { type: "STATE", isActive: true },
+      orderBy: { name: "asc" },
+      include: {
+        children: {
+          where: { type: "COUNTY", isActive: true },
+          orderBy: { name: "asc" },
+          include: {
+            children: {
+              where: { type: "CITY", isActive: true },
+              orderBy: { name: "asc" },
+              take: 8,
+            },
           },
         },
       },
-    },
-  });
+    })
+    .catch(() => []);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -42,7 +44,9 @@ export default async function LocationsPage() {
       {states.length === 0 ? (
         <p className="mt-10 rounded-lg border border-dashed border-border bg-card p-6 text-muted-foreground">
           No locations seeded yet. Run{" "}
-          <code className="rounded bg-muted px-1.5 py-0.5 text-sm">npm run db:seed</code>{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
+            npm run db:seed
+          </code>{" "}
           after the database is ready.
         </p>
       ) : (

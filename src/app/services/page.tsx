@@ -12,20 +12,26 @@ export const metadata = {
 };
 
 export default async function ServicesPage() {
-  const services = await prisma.service.findMany({
-    where: {
-      isActive: true,
-      parentId: null,
-      status: { in: ["PUBLISHED", "APPROVED", "DRAFT"] },
-    },
-    orderBy: [{ isLaunchFocus: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      children: {
-        where: { isActive: true },
-        orderBy: { sortOrder: "asc" },
+  const services = await prisma.service
+    .findMany({
+      where: {
+        isActive: true,
+        parentId: null,
+        status: { in: ["PUBLISHED", "APPROVED", "DRAFT"] },
       },
-    },
-  });
+      orderBy: [
+        { isLaunchFocus: "desc" },
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+      include: {
+        children: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    })
+    .catch(() => []);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -40,7 +46,9 @@ export default async function ServicesPage() {
       {services.length === 0 ? (
         <p className="mt-10 rounded-lg border border-dashed border-border bg-card p-6 text-muted-foreground">
           No services seeded yet. Run database migrations and{" "}
-          <code className="rounded bg-muted px-1.5 py-0.5 text-sm">npm run db:seed</code>{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 text-sm">
+            npm run db:seed
+          </code>{" "}
           after PostgreSQL is available.
         </p>
       ) : (

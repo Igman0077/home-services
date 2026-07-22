@@ -30,16 +30,32 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${site.name}`,
     },
     description: site.tagline,
+    applicationName: site.name,
     openGraph: {
       type: "website",
       locale: "en_US",
+      url: site.url,
       siteName: site.name,
+      title: site.name,
+      description: site.tagline,
+    },
+    twitter: {
+      card: "summary_large_image",
       title: site.name,
       description: site.tagline,
     },
     robots: {
       index: true,
       follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    alternates: {
+      canonical: "/",
     },
   };
 }
@@ -63,7 +79,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col antialiased">
         <AuthSessionProvider>
           <SiteHeader siteName={site.name} />
-          <main id="main-content" className="flex-1">
+          <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
             {children}
           </main>
           <SiteFooter siteName={site.name} />

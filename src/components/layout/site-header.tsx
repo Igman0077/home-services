@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
@@ -29,13 +30,16 @@ export async function SiteHeader({ siteName }: SiteHeaderProps) {
       >
         Skip to main content
       </a>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link
-          href="/"
-          className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl"
-        >
-          {siteName}
-        </Link>
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <MobileNav />
+          <Link
+            href="/"
+            className="font-display text-xl font-semibold tracking-tight text-primary sm:text-2xl"
+          >
+            {siteName}
+          </Link>
+        </div>
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
           {navItems.map((item) => (
             <Link
