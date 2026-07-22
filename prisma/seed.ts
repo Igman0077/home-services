@@ -1253,6 +1253,99 @@ async function seedHomeownerTools() {
   }
 }
 
+async function seedContentAndCalculators() {
+  await prisma.calculator.upsert({
+    where: { slug: "roof-replacement" },
+    create: {
+      name: "Roof replacement cost range",
+      slug: "roof-replacement",
+      description:
+        "Educational range estimator for asphalt or metal roof replacement based on squares and pitch complexity.",
+      disclaimer:
+        "Estimate only — not a quote, appraisal, or professional recommendation. Northern NY labor and winter access can push costs toward the high end.",
+      status: "PUBLISHED",
+      seoTitle: "Roof replacement cost calculator (estimate ranges)",
+      seoDescription:
+        "Rough roof replacement cost ranges for planning. Confirm with local on-site estimates.",
+      configuration: {
+        create: {
+          variables: {
+            squares: { min: 5, max: 80, default: 20 },
+            pitch: ["low", "medium", "steep"],
+            material: ["asphalt", "metal"],
+          },
+          formulas: {
+            engine: "src/lib/calculators/roof.ts",
+          },
+          assumptions: {
+            note: "Rates are intentional planning ranges, not market quotes.",
+          },
+        },
+      },
+    },
+    update: {
+      status: "PUBLISHED",
+      disclaimer:
+        "Estimate only — not a quote, appraisal, or professional recommendation. Northern NY labor and winter access can push costs toward the high end.",
+    },
+  });
+
+  const existingGuide = await prisma.guide.findUnique({
+    where: { slug: "winter-roof-care-northern-ny" },
+  });
+  if (!existingGuide) {
+    await prisma.guide.create({
+      data: {
+        title: "Winter roof care for Northern New York homes",
+        slug: "winter-roof-care-northern-ny",
+        excerpt:
+          "What homeowners can safely check before and after lake-effect snow — and when to call a roofing pro.",
+        status: "PUBLISHED",
+        indexDirective: "INDEX",
+        authorName: "Editorial team",
+        publishedAt: new Date(),
+        lastReviewedAt: new Date(),
+        seoTitle: "Winter roof care guide for Northern NY",
+        seoDescription:
+          "Educational tips for ice dams, snow load, and attic ventilation in Northern New York winters.",
+        contentBlocks: {
+          body: "Northern New York winters bring lake-effect snow, freeze-thaw cycles, and ice dams that stress asphalt and metal roofs. This guide covers safe homeowner checks and clear signals to request professional help.\n\nIt is educational content — not an inspection report or warranty.",
+          sections: [
+            {
+              heading: "Before deep freeze",
+              body: "Clear gutters where it is safe to do so, confirm attic ventilation paths are not blocked, and photograph existing soft spots or missing shingles for later comparison.",
+            },
+            {
+              heading: "After heavy snow",
+              body: "Watch for interior ceiling stains, ice lines at eaves, and unusual drips during melt. Avoid climbing steep or icy roofs yourself.",
+            },
+            {
+              heading: "When to get quotes",
+              body: "Active leaks, sagging decking, or repeated ice dams deserve licensed evaluation. Use the directory to request multiple local quotes.",
+            },
+          ],
+        },
+        faqs: {
+          create: [
+            {
+              question: "Should I chip ice dams myself?",
+              answer:
+                "Usually no. Improper tools can damage shingles and create new leaks. Ask a roofing professional about safe removal options.",
+              sortOrder: 0,
+            },
+            {
+              question: "Is this guide a substitute for an inspection?",
+              answer:
+                "No. Hire a licensed professional for structural concerns, active leaks, or work at height.",
+              sortOrder: 1,
+            },
+          ],
+        },
+      },
+    });
+  }
+}
+
 async function main() {
   console.info("Seeding North Country Home Services…");
   await seedRolesAndPermissions();
@@ -1266,11 +1359,12 @@ async function main() {
   await seedLeadRouting();
   await seedBusinessOwnerAccess();
   await seedHomeownerTools();
+  await seedContentAndCalculators();
   await prisma.auditLog.create({
     data: {
       action: "seed.completed",
       entityType: "System",
-      metadata: { phase: 5 },
+      metadata: { phase: 6 },
     },
   });
   console.info("Seed complete.");
@@ -1279,6 +1373,7 @@ async function main() {
   );
   console.info("Business owner: business@example.com / ChangeMeNow!123");
   console.info("Homeowner: homeowner@example.com / ChangeMeNow!123");
+  console.info("Editor: editor@example.com / ChangeMeNow!123");
 }
 
 main()

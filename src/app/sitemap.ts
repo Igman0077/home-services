@@ -18,7 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const [services, locations, businesses, localPages] = await Promise.all([
+    const [services, locations, businesses, localPages, guides, calculators] =
+      await Promise.all([
       prisma.service.findMany({
         where: { isActive: true, status: "PUBLISHED" },
         select: { slug: true, updatedAt: true },
@@ -38,6 +39,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           status: "PUBLISHED",
         },
         select: { slugPath: true, updatedAt: true },
+      }),
+      prisma.guide.findMany({
+        where: { status: "PUBLISHED", indexDirective: "INDEX" },
+        select: { slug: true, updatedAt: true },
+      }),
+      prisma.calculator.findMany({
+        where: { status: "PUBLISHED" },
+        select: { slug: true, updatedAt: true },
       }),
     ]);
 
@@ -66,6 +75,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: p.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.85,
+      })),
+      ...guides.map((g) => ({
+        url: `${base}/guides/${g.slug}`,
+        lastModified: g.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.65,
+      })),
+      ...calculators.map((c) => ({
+        url: `${base}/calculators/${c.slug}`,
+        lastModified: c.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.55,
       })),
     ];
   } catch {

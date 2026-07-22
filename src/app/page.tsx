@@ -212,9 +212,8 @@ export default async function HomePage() {
               Cost calculators & guides
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Educational estimators and maintenance guides are coming next.
-              Calculators will show ranges and disclaimers — never false
-              precision.
+              Educational estimators and maintenance guides help you plan —
+              always with ranges and disclaimers, never false precision.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button asChild variant="outline">

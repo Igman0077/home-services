@@ -72,8 +72,15 @@
 
 ## Phase 6 — Content & AI
 
-- [ ] CMS workflows
-- [ ] AI draft generation (human approval)
+- [x] Guides CMS (create/edit, status workflow, FAQs, revisions)
+- [x] Public guides listing + detail + SEO JSON-LD
+- [x] AI mock provider for guide drafts
+- [x] AI review queue (approve → draft guide; never auto-publish)
+- [x] Roof replacement calculator (ranges + disclaimer)
+- [x] Sitemap includes published guides/calculators
+- [x] Seed published guide + calculator
+- [x] Content/AI/calculator unit tests
+- [x] Lint / typecheck / tests / build
 
 ## Phase 7 — Monetization
 

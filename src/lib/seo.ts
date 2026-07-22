@@ -140,6 +140,28 @@ export function faqJsonLd(
   };
 }
 
+export function articleJsonLd(input: {
+  title: string;
+  description?: string | null;
+  url: string;
+  datePublished?: Date | null;
+  dateModified?: Date | null;
+  authorName?: string | null;
+}): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: input.title,
+    description: input.description ?? undefined,
+    url: input.url,
+    datePublished: input.datePublished?.toISOString(),
+    dateModified: input.dateModified?.toISOString(),
+    author: input.authorName
+      ? { "@type": "Person", name: input.authorName }
+      : undefined,
+  };
+}
+
 export function verificationLabel(
   status: VerificationStatus,
 ): { label: string; tone: "success" | "warning" | "secondary" | "outline" } {

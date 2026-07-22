@@ -6,16 +6,15 @@ The public site name is configurable via environment variables and admin **Site 
 
 ## Current status
 
-**Phase 5 — Homeowner tools (complete in code)**
+**Phase 6 — Content & AI (complete in code)**
 
-- Properties with heating/roof/utility details
-- Maintenance tasks + Northern NY seasonal suggestions
-- Appliances & warranty notes
-- Private document vault (local file storage + external URL refs)
-- Saved businesses (favorites)
-- Seed demo data for `homeowner@example.com`
+- Guides CMS with draft → review → approve → publish + revisions
+- Public guides with Article + FAQ structured data
+- AI mock provider + human review queue (approve creates draft only)
+- Roof replacement cost-range calculator with disclaimers
+- Seed: published winter roof guide + roof calculator
 
-Phases 1–4 (foundation, directory, leads, business accounts) remain in place.
+Phases 1–5 remain in place.
 
 ## Stack
 
